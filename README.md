@@ -20,8 +20,18 @@ sudo mount --make-rslave --rbind /dev /mnt/dev
 sudo mount --make-rslave --rbind /run /mnt/run
 sudo chroot /mnt /bin/bash
 
+# What we want to do:
+https://wiki.archlinux.org/title/Dm-crypt/Encrypting_an_entire_system#LVM_on_LUKS
+
+The straightforward method is to set up LVM on top of the encrypted partition instead of the other way round. Technically the LVM is setup inside one big encrypted block device. Hence, the LVM is not visible until the block device is unlocked and the underlying volume structure is scanned and mounted during boot.
+
+
+
 ## Resources
 
 - https://wiki.archlinux.org/title/LVM
 - https://wiki.archlinux.org/title/SELinux
 - https://wiki.archlinux.org/title/Uncomplicated_Firewall
+- https://wiki.archlinux.org/title/Partitioning
+- https://wiki.archlinux.org/title/Dm-crypt/Encrypting_an_entire_system#LVM_on_LUKS
+- https://neosmart.net/wiki/mbr-boot-process/
