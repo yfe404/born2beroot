@@ -13,17 +13,23 @@
 
 n_cpu=$(grep 'physical id' /proc/cpuinfo | sort -u | wc -l)
 n_vcpu=$(grep 'processor' /proc/cpuinfo | sort -u | wc -l)
+ip4=$(ip -4 a show enp0s3 | grep inet | tr -s ' ' | cut -d' ' -f 3 | cut -d '/' -f 1)
+mac=$(ip a show enp0s3 | grep ether | tr -s ' ' | cut -d' ' -f 3 | cut -d '/' -f 1)
+mem_use=12
+mem_avai=133
+mem_perc=$(echo "scale=2; 100*$mem_use / $mem_avai" | bc)
 
-echo "Architecture: "
+
+echo "Architecture: $(uname -a)"
 echo "CPU physical: $n_cpu"
 echo "vCPU: $n_vcpu"
-echo "Memory Usage: "
-echo "CPU boot: "
-echo "Last boot: "
+echo "Memory Usage: ${mem_use}/${mem_avai}MB (${mem_perc}%)"
+echo "CPU load: "
+echo "Last boot: $(who -b | tr -s ' ' | cut -d' ' -f4-5)"
 echo "LVM use: "
 echo "Connections TCP: "
 echo "User log: "
-echo "Network: "
+echo "Network: IP $ip4 ($mac)"
 echo "Sudo: "
 
 
