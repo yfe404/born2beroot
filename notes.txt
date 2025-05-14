@@ -1,0 +1,22 @@
+Ok I have my base image with disk partitionning as expected (bonus section)
+
+Next step: setting up the ssh service running on port 4242 
+note: root login must not be allowed. 
+
+That's trivial, we just need to install `openssh-server`, edit the file `/etc/ssh/sshd_config`, 
+specifically these two lines:
+
+```
+...
+...
+
+...
+
+```
+
+And enable the service: 
+`systemctl enable --now sshd`
+
+Easy. 
+
+
