@@ -46,3 +46,24 @@ Source: https://wiki.debian.org/Hostname#Core_networking
 
 
 Since we use systemd this is very easy: `hostnamectl set-hostname HOSTNAME`
+
+
+-------
+
+Now let setup the password policy
+Source: https://www.debian.org/doc/manuals/securing-debian-manual/ch04s11.en.html
+https://web.archive.org/web/20190313211808/https://www.deer-run.com/~hal/sysadmin/pam_cracklib.html
+
+https://www.server-world.info/en/note?os=Debian_10&p=password
+
+We need to install the password quality checking library
+`apt install libpam-pwquality`
+
+and then edit these 2 files:
+- /etc/login.defs 
+- /etc/security/pwquality.conf 
+
+according to the subject.
+
+
+
