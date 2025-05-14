@@ -8,10 +8,10 @@ specifically these two lines:
 
 ```
 ...
+Port 4242
 ...
-
+PermitRootLogin no
 ...
-
 ```
 
 And enable the service: 
@@ -19,4 +19,30 @@ And enable the service:
 
 Easy. 
 
+EDIT: of course we need to edit /etc/apt/sources.list first as the urls points to the cdrom (that we don't have). And run a `apt update`.
 
+We can test that using a port forwarding in VBox (if NAT) or directlty ssh-ing the VM ip (if bridged)
+
+-----
+
+Next, set up of UFW, letting only traffic to and from 4242 (ssh)
+Source: https://wiki.debian.org/Uncomplicated%20Firewall%20%28ufw%29
+
+However, simply installing the firewall will not turn it on automatically, nor it will have any rule set by default.  
+
+So we need to add our rules and enable / start the service. 
+
+```
+# ufw enable 
+```
+
+Since we use a custom port for ssh, we cannot just `ufw allow ssh`, we need to `ufw allow 4242/tcp`
+
+------
+
+
+Next step changing the hostname
+Source: https://wiki.debian.org/Hostname#Core_networking
+
+
+Since we use systemd this is very easy: `hostnamectl set-hostname HOSTNAME`
