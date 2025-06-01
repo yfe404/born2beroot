@@ -15,8 +15,8 @@ n_cpu=$(grep 'physical id' /proc/cpuinfo | sort -u | wc -l)
 n_vcpu=$(grep 'processor' /proc/cpuinfo | sort -u | wc -l)
 ip4=$(ip -4 a show enp0s3 | grep inet | tr -s ' ' | cut -d' ' -f 3 | cut -d '/' -f 1)
 mac=$(ip a show enp0s3 | grep ether | tr -s ' ' | cut -d' ' -f 3 | cut -d '/' -f 1)
-mem_use=12
-mem_avai=133
+mem_use=$(free -m  | tr -s ' ' | head -n 2 | tail -n 1 | cut -d" " -f 3)
+mem_avai=$(free -m  | tr -s ' ' | head -n 2 | tail -n 1 | cut -d" " -f 2)
 mem_perc=$(echo "scale=2; 100*$mem_use / $mem_avai" | bc)
 
 
@@ -30,7 +30,7 @@ echo "LVM use: "
 echo "Connections TCP: "
 echo "User log: "
 echo "Network: IP $ip4 ($mac)"
-echo "Sudo: "
+echo "Sudo: $(cat /var/log/sudo/seq) cmd"
 
 
 
