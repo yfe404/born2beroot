@@ -18,13 +18,14 @@ mac=$(ip a show enp0s3 | grep ether | tr -s ' ' | cut -d' ' -f 3 | cut -d '/' -f
 mem_use=$(free -m  | tr -s ' ' | head -n 2 | tail -n 1 | cut -d" " -f 3)
 mem_avai=$(free -m  | tr -s ' ' | head -n 2 | tail -n 1 | cut -d" " -f 2)
 mem_perc=$(echo "scale=2; 100*$mem_use / $mem_avai" | bc)
+cpu_usage=$(top -bn 2 -d 0.1 | grep '^%Cpu' | tail -n 1 | awk '{print $2+$4+$6}')
 
 
 echo "Architecture: $(uname -a)"
 echo "CPU physical: $n_cpu"
 echo "vCPU: $n_vcpu"
 echo "Memory Usage: ${mem_use}/${mem_avai}MB (${mem_perc}%)"
-echo "CPU load: "
+echo "CPU load: $(cpu_usage)"
 echo "Last boot: $(who -b | tr -s ' ' | cut -d' ' -f4-5)"
 echo "LVM use: "
 echo "Connections TCP: "
