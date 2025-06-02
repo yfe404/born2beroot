@@ -19,15 +19,21 @@ mem_use=$(free -m  | tr -s ' ' | head -n 2 | tail -n 1 | cut -d" " -f 3)
 mem_avai=$(free -m  | tr -s ' ' | head -n 2 | tail -n 1 | cut -d" " -f 2)
 mem_perc=$(echo "scale=2; 100*$mem_use / $mem_avai" | bc)
 cpu_usage=$(top -bn 2 -d 0.1 | grep '^%Cpu' | tail -n 1 | awk '{print $2+$4+$6}')
-
+disk_usage=$(df -h --total | grep mapper | awk '{printf "\t-%s: Available: %s Usage: %s\n", $1, $4, $5}')
+lvM_in_use="no"
+if sudo pvdisplay 2>/dev/null | grep -q UUID; then
+    lvm_in_use="yes"
+fi
 
 echo "Architecture: $(uname -a)"
 echo "CPU physical: $n_cpu"
 echo "vCPU: $n_vcpu"
 echo "Memory Usage: ${mem_use}/${mem_avai}MB (${mem_perc}%)"
-echo "CPU load: $(cpu_usage)"
+echo "Disk Usage: "
+echo "${disk_usage}"
+echo "CPU load: ${cpu_usage}"
 echo "Last boot: $(who -b | tr -s ' ' | cut -d' ' -f4-5)"
-echo "LVM use: "
+echo "LVM use: ${lvm_in_use}"
 echo "Connections TCP: "
 echo "User log: "
 echo "Network: IP $ip4 ($mac)"

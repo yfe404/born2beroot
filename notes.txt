@@ -106,3 +106,9 @@ Why it's enough:
 
 	[Physical Volume] -> [Volume Group] -> [Logical Volumes] -> [Mounted Filesystems]
 
+with -q check silently 
+
+	if sudo pvdisplay 2>/dev/null | grep -q UUID; then
+    in_use=yes
+fi
+
