@@ -112,3 +112,12 @@ with -q check silently
     in_use=yes
 fi
 
+for counting the number of established TCP con we can use `ss` (socket statistics, modern replacement of `netstat`). 
+`ss -tn state established | tail -n +2 | wc -l`
+-t = TCP only
+-n = don’t resolve names (faster)
+state established = only show established connections
+tail -n +2 = skip the header
+wc -l = count the lines (i.e. number of connections)
+
+For The number of users using the server, this it a bit vague, I will assume it is the number of users currently logged in but it might be something else... 
