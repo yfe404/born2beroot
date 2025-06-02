@@ -90,6 +90,19 @@ Source: `man sudoers`
 
 #### MONIT SCRIPT
 
-
+For the disk usage, there a several approach and ways to compute it. For instance should the boot partition be included or not ? RAM based fs? I will choose to report only the mounted partions that uses LVM on /de/sda5 since everything is here. I will also report per partition as it makes more sense to me. 
 
 cpu usage: https://askubuntu.com/questions/274349/getting-cpu-usage-realtime
+
+
+checking if lvm is used:
+pvdisplay is enough to check if you're using LVM, because it lists all physical volumes that belong to LVM.
+
+Why it's enough:
+
+    pvdisplay shows LVM physical volumes (PVs), which are the lowest level of LVM (typically /dev/sdX or /dev/mapper/... devices initialized for LVM).
+
+    If you see output from pvdisplay, you are using LVM — at least one disk or partition has been initialized as a physical volume.
+
+	[Physical Volume] -> [Volume Group] -> [Logical Volumes] -> [Mounted Filesystems]
+
