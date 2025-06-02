@@ -66,4 +66,30 @@ and then edit these 2 files:
 according to the subject.
 
 
+------
 
+
+Next installation and configuration of sudo
+
+`apt install sudo`
+
+
+we can also create and add our use to sudo
+`adduser foo -G sudo`
+
+or add an existing user to sudo 
+`adduser foo sudo`
+
+
+
+
+Source: `man sudoers`
+
+
+
+
+#### MONIT SCRIPT
+
+
+
+cpu usage: https://askubuntu.com/questions/274349/getting-cpu-usage-realtime
