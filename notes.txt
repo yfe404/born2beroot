@@ -121,3 +121,13 @@ tail -n +2 = skip the header
 wc -l = count the lines (i.e. number of connections)
 
 For The number of users using the server, this it a bit vague, I will assume it is the number of users currently logged in but it might be something else... 
+
+
+
+INSTALL OF WORDPRESS with LLMP stack ((Linux, Lighttpd, MariaDB, and PHP-FPM))
+https://www.howtoforge.com/how-to-install-lighttpd-with-mariadb-and-php-fpm-on-ubuntu-22-04/
+https://developer.wordpress.org/advanced-administration/before-install/howto-install/
+
+to create the table, as root, type mariadb and follow instructions here: https://developer.wordpress.org/advanced-administration/before-install/creating-database/
+
+creds: wordpress/password (secured I know)
