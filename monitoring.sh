@@ -20,7 +20,7 @@ mem_avai=$(free -m  | tr -s ' ' | head -n 2 | tail -n 1 | cut -d" " -f 2)
 mem_perc=$(echo "scale=2; 100*$mem_use / $mem_avai" | bc)
 cpu_usage=$(top -bn 2 -d 0.1 | grep '^%Cpu' | tail -n 1 | awk '{print $2+$4+$6}')
 disk_usage=$(df -h --total | grep mapper | awk '{printf "\t-%s: Available: %s Usage: %s\n", $1, $4, $5}')
-lvM_in_use="no"
+lvm_in_use="no"
 if pvdisplay 2>/dev/null | grep -q UUID; then
     lvm_in_use="yes"
 fi
