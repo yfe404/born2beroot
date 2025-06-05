@@ -1,133 +1,344 @@
-Ok I have my base image with disk partitionning as expected (bonus section)
+# Born2beRoot - Project Notes & Configuration Guide
 
-Next step: setting up the ssh service running on port 4242 
-note: root login must not be allowed. 
+## Initial Setup
 
-That's trivial, we just need to install `openssh-server`, edit the file `/etc/ssh/sshd_config`, 
-specifically these two lines:
+### ✔ Base Image
 
+* Disk partitioning is configured as expected, including bonus structure.
+
+---
+
+## SSH Configuration
+
+### Goal:
+
+* SSH server must run on **port 4242**.
+* **Root login must be disabled**.
+
+### Steps:
+
+1. Update APT sources if necessary (CD-ROM references may be present):
+
+   ```bash
+   sudo nano /etc/apt/sources.list
+   sudo apt update
+   ```
+
+2. Install OpenSSH:
+
+   ```bash
+   sudo apt install openssh-server
+   ```
+
+3. Edit SSH config:
+
+   ```bash
+   sudo nano /etc/ssh/sshd_config
+   # Set the following lines:
+   Port 4242
+   PermitRootLogin no
+   ```
+
+4. Enable and start the service:
+
+   ```bash
+   sudo systemctl enable --now sshd
+   ```
+
+5. Test SSH:
+
+   * With NAT: use VirtualBox port forwarding.
+   * With bridged mode: connect directly to the VM's IP.
+
+---
+
+## Firewall (UFW)
+
+### Goal:
+
+* Enable UFW.
+* Allow only SSH traffic on port 4242.
+
+### Steps:
+
+```bash
+sudo apt install ufw
+sudo ufw allow 4242/tcp
+sudo ufw enable
 ```
-...
-Port 4242
-...
-PermitRootLogin no
-...
+
+> Note: `ufw allow ssh` won't work since SSH is not on the default port.
+
+---
+
+## Hostname Setup
+
+```bash
+sudo hostnamectl set-hostname <your_login>42
 ```
 
-And enable the service: 
-`systemctl enable --now sshd`
+---
 
-Easy. 
+## Password Policy Configuration
 
-EDIT: of course we need to edit /etc/apt/sources.list first as the urls points to the cdrom (that we don't have). And run a `apt update`.
+### Requirements (from subject):
 
-We can test that using a port forwarding in VBox (if NAT) or directlty ssh-ing the VM ip (if bridged)
+1. Password expires after 30 days
+2. Cannot be changed more often than every 2 days
+3. Warn users 7 days before expiration
+4. Must contain:
 
------
+   * ≥10 characters
+   * Uppercase, lowercase, digit
+   * No username
+   * No more than 3 identical characters in a row
+5. Root is **exempt only from the "7 new character" difference rule**
 
-Next, set up of UFW, letting only traffic to and from 4242 (ssh)
-Source: https://wiki.debian.org/Uncomplicated%20Firewall%20%28ufw%29
+### Files & Configuration:
 
-However, simply installing the firewall will not turn it on automatically, nor it will have any rule set by default.  
+#### 1. `/etc/security/pwquality.conf`
 
-So we need to add our rules and enable / start the service. 
-
+```ini
+minlen = 10
+dcredit = -1
+ucredit = -1
+lcredit = -1
+maxrepeat = 3
+usercheck = 1
 ```
-# ufw enable 
+
+#### 2. `/etc/pam.d/common-password`
+
+```bash
+password requisite pam_pwquality.so retry=3 enforce_for_root
+password required pam_pwhistory.so remember=5 difok=7
 ```
 
-Since we use a custom port for ssh, we cannot just `ufw allow ssh`, we need to `ufw allow 4242/tcp`
+* `pam_pwquality`: enforces complexity (applies to root)
+* `pam_pwhistory`: enforces reuse prevention & difference (does **not** apply to root)
 
-------
+#### 3. `/etc/login.defs`
 
+```ini
+PASS_MAX_DAYS   30
+PASS_MIN_DAYS   2
+PASS_WARN_AGE   7
+```
 
-Next step changing the hostname
-Source: https://wiki.debian.org/Hostname#Core_networking
+* Applies to **new users** only.
 
+#### 4. Apply expiration rules to existing users:
 
-Since we use systemd this is very easy: `hostnamectl set-hostname HOSTNAME`
+```bash
+sudo chage -M 30 -m 2 -W 7 root
+sudo chage -M 30 -m 2 -W 7 <your_user>
+```
 
+### Validation:
 
--------
+```bash
+sudo chage -l <username>
+```
 
-Now let setup the password policy
-Source: https://www.debian.org/doc/manuals/securing-debian-manual/ch04s11.en.html
-https://web.archive.org/web/20190313211808/https://www.deer-run.com/~hal/sysadmin/pam_cracklib.html
+---
 
-https://www.server-world.info/en/note?os=Debian_10&p=password
+## Sudo Configuration
 
-We need to install the password quality checking library
-`apt install libpam-pwquality`
+```bash
+sudo apt install sudo
+sudo adduser <your_user> sudo
+```
 
-and then edit these 2 files:
-- /etc/login.defs 
-- /etc/security/pwquality.conf 
+> User must also be in `user42` group:
 
-according to the subject.
+```bash
+sudo groupadd user42
+sudo usermod -aG user42 <your_user>
+```
 
+### Configuration Goals:
 
-------
+* Max 3 wrong password attempts
+* Custom error message
+* Log sudo usage to `/var/log/sudo/`
+* TTY required
+* Secure path
 
+Use `visudo` to apply:
 
-Next installation and configuration of sudo
+```bash
+Defaults        badpass_message="Try again, mortal."
+Defaults        logfile="/var/log/sudo/sudo.log"
+Defaults        requiretty
+Defaults        secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+```
 
-`apt install sudo`
+---
 
+## Monitoring Script Notes
 
-we can also create and add our use to sudo
-`adduser foo -G sudo`
+### Metrics Required:
 
-or add an existing user to sudo 
-`adduser foo sudo`
+* OS & Kernel
+* Physical & virtual CPUs
+* RAM & disk usage (percentage)
+* CPU load
+* Last boot time
+* Is LVM used
+* TCP connections (established)
+* Logged-in users
+* IPv4 & MAC
+* Sudo command count
 
+### Useful Commands:
 
+```bash
+uname -a
+lscpu
+free -m
+df -h
+uptime -s
+ss -tn state established | tail -n +2 | wc -l
+who | wc -l
+ip -4 a | grep inet
+ip link | grep ether
+journalctl _COMM=sudo | grep COMMAND= | wc -l
+```
 
+### LVM Check:
 
-Source: `man sudoers`
-
-
-
-
-#### MONIT SCRIPT
-
-For the disk usage, there a several approach and ways to compute it. For instance should the boot partition be included or not ? RAM based fs? I will choose to report only the mounted partions that uses LVM on /de/sda5 since everything is here. I will also report per partition as it makes more sense to me. 
-
-cpu usage: https://askubuntu.com/questions/274349/getting-cpu-usage-realtime
-
-
-checking if lvm is used:
-pvdisplay is enough to check if you're using LVM, because it lists all physical volumes that belong to LVM.
-
-Why it's enough:
-
-    pvdisplay shows LVM physical volumes (PVs), which are the lowest level of LVM (typically /dev/sdX or /dev/mapper/... devices initialized for LVM).
-
-    If you see output from pvdisplay, you are using LVM — at least one disk or partition has been initialized as a physical volume.
-
-	[Physical Volume] -> [Volume Group] -> [Logical Volumes] -> [Mounted Filesystems]
-
-with -q check silently 
-
-	if sudo pvdisplay 2>/dev/null | grep -q UUID; then
-    in_use=yes
+```bash
+if sudo pvdisplay 2>/dev/null | grep -q UUID; then
+    echo "LVM use: yes"
+else
+    echo "LVM use: no"
 fi
+```
 
-for counting the number of established TCP con we can use `ss` (socket statistics, modern replacement of `netstat`). 
-`ss -tn state established | tail -n +2 | wc -l`
--t = TCP only
--n = don’t resolve names (faster)
-state established = only show established connections
-tail -n +2 = skip the header
-wc -l = count the lines (i.e. number of connections)
+---
 
-For The number of users using the server, this it a bit vague, I will assume it is the number of users currently logged in but it might be something else... 
+## WordPress (Bonus - LLMP Stack)
 
+Follow guides:
 
+* [HowToForge Lighttpd + MariaDB + PHP-FPM](https://www.howtoforge.com/how-to-install-lighttpd-with-mariadb-and-php-fpm-on-ubuntu-22-04/)
+* [WordPress setup](https://developer.wordpress.org/advanced-administration/before-install/howto-install/)
 
-INSTALL OF WORDPRESS with LLMP stack ((Linux, Lighttpd, MariaDB, and PHP-FPM))
-https://www.howtoforge.com/how-to-install-lighttpd-with-mariadb-and-php-fpm-on-ubuntu-22-04/
-https://developer.wordpress.org/advanced-administration/before-install/howto-install/
+Create DB:
 
-to create the table, as root, type mariadb and follow instructions here: https://developer.wordpress.org/advanced-administration/before-install/creating-database/
+```bash
+sudo mariadb
+CREATE DATABASE wordpress;
+CREATE USER 'wordpress'@'localhost' IDENTIFIED BY 'password';
+GRANT ALL PRIVILEGES ON wordpress.* TO 'wordpress'@'localhost';
+FLUSH PRIVILEGES;
+EXIT;
+```
 
-creds: wordpress/password (secured I know)
+---
+
+## Bonus Service: Ollama (LLM Server)
+
+### Why Ollama?
+
+* Easy to install and maintain, minimal configuration required.
+
+* Lightweight and efficient for local testing of large language models without cloud dependency.
+
+* Educationally relevant
+
+* Security benefit: running LLMs locally avoids exposing data to external APIs.
+
+* Useful for local model inference or experimentation.
+
+### Setup (example for Debian-based):
+
+1. Download and install Ollama:
+
+   ```bash
+   curl -fsSL https://ollama.com/install.sh | sh
+   ```
+
+2. Enable the Ollama service:
+
+   ```bash
+   sudo systemctl enable --now ollama
+   ```
+
+3. (Optional) Pull a model:
+
+   ```bash
+   ollama pull llama2
+   ```
+
+4. Confirm it’s working:
+
+   ```bash
+   curl http://localhost:11434
+   ```
+
+> 📌 Remember to allow port 11434 in UFW **only if you want remote access**.
+
+---
+
+## Defense Checklist
+
+### AppArmor
+
+```bash
+sudo aa-status
+sudo systemctl is-enabled apparmor
+```
+
+### LVM + Encryption
+
+```bash
+lsblk
+sudo pvdisplay
+sudo vgdisplay
+sudo lvdisplay
+```
+
+### SSH on Port 4242
+
+```bash
+sudo ss -tulpn | grep ssh
+sudo grep Port /etc/ssh/sshd_config
+sudo grep PermitRootLogin /etc/ssh/sshd_config
+```
+
+### UFW
+
+```bash
+sudo ufw status verbose
+```
+
+### User & Group Setup
+
+```bash
+id <your_login>
+getent group user42
+```
+
+### Sudo
+
+* Check logs in `/var/log/sudo/`
+* Confirm TTY mode is enabled
+* Confirm secure path and custom message work
+
+---
+
+## References
+
+* Debian Wiki - SSH Configuration: [https://wiki.debian.org/SSH](https://wiki.debian.org/SSH)
+* Debian Wiki - Hostname: [https://wiki.debian.org/Hostname](https://wiki.debian.org/Hostname)
+* Debian Wiki - UFW: [https://wiki.debian.org/Uncomplicated%20Firewall%20%28ufw%29](https://wiki.debian.org/Uncomplicated%20Firewall%20%28ufw%29)
+* Securing Debian Manual - Password Policy: [https://www.debian.org/doc/manuals/securing-debian-manual/ch04s11.en.html](https://www.debian.org/doc/manuals/securing-debian-manual/ch04s11.en.html)
+* PAM Cracklib Info: [https://web.archive.org/web/20190313211808/https://www.deer-run.com/\~hal/sysadmin/pam\_cracklib.html](https://web.archive.org/web/20190313211808/https://www.deer-run.com/~hal/sysadmin/pam_cracklib.html)
+* Server World Password Policy Guide: [https://www.server-world.info/en/note?os=Debian\_10\&p=password](https://www.server-world.info/en/note?os=Debian_10&p=password)
+* man sudoers: [https://www.sudo.ws/docs/man/1.9.1/sudo\_logsrvd.conf.man/](https://www.sudo.ws/docs/man/1.9.1/sudo_logsrvd.conf.man/)
+* AskUbuntu CPU Usage: [https://askubuntu.com/questions/274349/getting-cpu-usage-realtime](https://askubuntu.com/questions/274349/getting-cpu-usage-realtime)
+* WordPress Setup: [https://developer.wordpress.org/advanced-administration/before-install/howto-install/](https://developer.wordpress.org/advanced-administration/before-install/howto-install/)
+* Lighttpd + MariaDB + PHP-FPM: [https://www.howtoforge.com/how-to-install-lighttpd-with-mariadb-and-php-fpm-on-ubuntu-22-04/](https://www.howtoforge.com/how-to-install-lighttpd-with-mariadb-and-php-fpm-on-ubuntu-22-04/)
+* Ollama Docs: [https://ollama.com/](https://ollama.com/)
+
